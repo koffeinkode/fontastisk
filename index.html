@@ -537,15 +537,13 @@
         try {
           const { path, advanceWidth } = imageToGlyphPath(glyphImages[ch.char].img);
 
-          if (ch.group === 'letter') {
-            if (caseMode === 'upper' || caseMode === 'both') {
-              glyphs.push(new opentype.Glyph({ name: ch.glyphName, unicode: ch.unicode, advanceWidth, path }));
-            }
-            if (caseMode === 'lower' || caseMode === 'both') {
-              glyphs.push(new opentype.Glyph({ name: ch.glyphName + '.lower', unicode: ch.unicode + 32, advanceWidth, path }));
-            }
+          if (ch.group === 'letter' && caseMode === 'both') {
+            const clonePath = () => { const p = new opentype.Path(); p.commands = path.commands.map(c => ({...c})); return p; };
+            glyphs.push(new opentype.Glyph({ name: ch.glyphName,          unicodes: [ch.unicode],      advanceWidth, path: clonePath() }));
+            glyphs.push(new opentype.Glyph({ name: ch.glyphName + '.lc',  unicodes: [ch.unicode + 32], advanceWidth, path: clonePath() }));
           } else {
-            glyphs.push(new opentype.Glyph({ name: ch.glyphName, unicode: ch.unicode, advanceWidth, path }));
+            const unicodes = (ch.group === 'letter' && caseMode === 'lower') ? [ch.unicode + 32] : [ch.unicode];
+            glyphs.push(new opentype.Glyph({ name: ch.glyphName, unicodes, advanceWidth, path }));
           }
           processed++;
         } catch (err) {
