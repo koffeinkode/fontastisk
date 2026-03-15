@@ -537,16 +537,16 @@
         try {
           const { path, advanceWidth } = imageToGlyphPath(glyphImages[ch.char].img);
 
-          let unicodes;
           if (ch.group === 'letter') {
-            if (caseMode === 'upper')      unicodes = [ch.unicode];
-            else if (caseMode === 'lower') unicodes = [ch.unicode + 32];
-            else                           unicodes = [ch.unicode, ch.unicode + 32];
+            if (caseMode === 'upper' || caseMode === 'both') {
+              glyphs.push(new opentype.Glyph({ name: ch.glyphName, unicode: ch.unicode, advanceWidth, path }));
+            }
+            if (caseMode === 'lower' || caseMode === 'both') {
+              glyphs.push(new opentype.Glyph({ name: ch.glyphName + '.lower', unicode: ch.unicode + 32, advanceWidth, path }));
+            }
           } else {
-            unicodes = [ch.unicode];
+            glyphs.push(new opentype.Glyph({ name: ch.glyphName, unicode: ch.unicode, advanceWidth, path }));
           }
-
-          glyphs.push(new opentype.Glyph({ name: ch.glyphName, unicodes, advanceWidth, path }));
           processed++;
         } catch (err) {
           console.error(`Feil ved ${ch.char}:`, err);
