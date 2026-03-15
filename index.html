@@ -187,12 +187,23 @@
 
       const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const d = imgData.data;
+
+      // Threshold to B&W
       for (let i = 0; i < d.length; i += 4) {
         const luma = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
         const v = luma < 128 ? 0 : 255;
         d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
       }
-      ctx.putImageData(imgData, 0, 0);
+
+      // Auto-invert: if majority of pixels are dark, image has dark background
+      // (light letters on dark bg) — invert so letter is always black on white
+      let darkCount = 0;
+      for (let i = 0; i < d.length; i += 4) { if (d[i] === 0) darkCount++; }
+      if (darkCount > (d.length / 4) * 0.5) {
+        for (let i = 0; i < d.length; i += 4) {
+          d[i] = d[i + 1] = d[i + 2] = d[i] === 0 ? 255 : 0;
+        }
+      }
 
       const svgStr = ImageTracer.imagedataToSVG(imgData, {
         colorsampling: 0, numberofcolors: 2, mincolorratio: 0, colorquantcycles: 1,
@@ -233,6 +244,42 @@
       }
 
       return { path, advanceWidth };
+    }
+
+    function reversePathWinding(path) {
+      const subpaths = [];
+      let cur = [];
+      for (const cmd of path.commands) {
+        if (cmd.type === 'M' && cur.length > 0) { subpaths.push(cur); cur = []; }
+        cur.push(cmd);
+      }
+      if (cur.length > 0) subpaths.push(cur);
+
+      const newPath = new opentype.Path();
+      for (const sp of subpaths) {
+        const hasZ = sp[sp.length - 1]?.type === 'Z';
+        const cmds = hasZ ? sp.slice(0, -1) : sp;
+        if (cmds.length < 2 || cmds[0].type !== 'M') continue;
+
+        const pts = [{ x: cmds[0].x, y: cmds[0].y }];
+        const segs = [];
+        for (let i = 1; i < cmds.length; i++) {
+          const c = cmds[i];
+          if (c.type === 'L') { segs.push({ t: 'L' }); pts.push({ x: c.x, y: c.y }); }
+          else if (c.type === 'C') { segs.push({ t: 'C', x1: c.x1, y1: c.y1, x2: c.x2, y2: c.y2 }); pts.push({ x: c.x, y: c.y }); }
+          else if (c.type === 'Q') { segs.push({ t: 'Q', x1: c.x1, y1: c.y1 }); pts.push({ x: c.x, y: c.y }); }
+        }
+        const n = pts.length;
+        newPath.moveTo(pts[n - 1].x, pts[n - 1].y);
+        for (let i = n - 2; i >= 0; i--) {
+          const s = segs[i];
+          if (s.t === 'L') newPath.lineTo(pts[i].x, pts[i].y);
+          else if (s.t === 'C') newPath.curveTo(s.x2, s.y2, s.x1, s.y1, pts[i].x, pts[i].y);
+          else if (s.t === 'Q') newPath.quadraticCurveTo(s.x1, s.y1, pts[i].x, pts[i].y);
+        }
+        if (hasZ) newPath.close();
+      }
+      return newPath;
     }
 
     function appendTransformedPath(opPath, d, tx, ty) {
@@ -355,7 +402,8 @@
         await new Promise(r => setTimeout(r, 10));
         try {
           const { svgStr, width, height } = imageToSVG(glyphImages[letter.char].img);
-          const { path, advanceWidth } = buildGlyphPath(svgStr, width, height);
+          const { path: rawPath, advanceWidth } = buildGlyphPath(svgStr, width, height);
+          const path = reversePathWinding(rawPath);
           glyphs.push(new opentype.Glyph({
             name: letter.glyphName, unicode: letter.unicode, advanceWidth, path,
           }));
