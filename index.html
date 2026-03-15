@@ -4,140 +4,394 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fontastisk</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-stone-100 min-h-screen p-6">
-  <div class="max-w-4xl mx-auto">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-stone-800">Fontastisk</h1>
-      <p class="text-stone-500 text-sm mt-1">
-        Én PNG per bokstav. Filnavn bestemmer bokstav automatisk:
-        <code class="bg-stone-200 px-1 rounded">A.png</code>,
-        <code class="bg-stone-200 px-1 rounded">ae.png</code> → Æ,
-        <code class="bg-stone-200 px-1 rounded">oe.png</code> → Ø,
-        <code class="bg-stone-200 px-1 rounded">aa.png</code> → Å.
-        Bildets bredde bestemmer tegnbredden.
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #f2f0ec;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 36px 24px 64px;
+    }
+
+    .wrap { max-width: 920px; margin: 0 auto; }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .subtitle {
+      font-size: 0.7rem;
+      color: #666;
+      margin-top: 8px;
+      line-height: 1.7;
+    }
+    .subtitle code {
+      background: #e4e1db;
+      padding: 1px 5px;
+      font-family: inherit;
+    }
+
+    /* Settings panel */
+    .panel {
+      background: #fff;
+      border: 2px solid #1a1a1a;
+      padding: 14px 16px;
+      margin: 20px 0 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: flex-end;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #888;
+      margin-bottom: 6px;
+    }
+
+    .field-input {
+      border: 2px solid #1a1a1a;
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 0.8125rem;
+      background: #fff;
+      width: 180px;
+      outline: none;
+    }
+    .field-input:focus { background: #f2f0ec; }
+
+    .case-options {
+      display: flex;
+      border: 2px solid #1a1a1a;
+    }
+    .case-options label {
+      padding: 6px 14px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      user-select: none;
+      background: #fff;
+      border-right: 1px solid #ccc;
+    }
+    .case-options label:last-child { border-right: none; }
+    .case-options input[type=radio] { display: none; }
+    .case-options label:has(input:checked) {
+      background: #1a1a1a;
+      color: #fff;
+    }
+
+    .panel-right {
+      margin-left: auto;
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+    }
+
+    .status-text { font-size: 0.7rem; color: #999; }
+
+    .btn {
+      border: 2px solid #1a1a1a;
+      background: #1a1a1a;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 7px 18px;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+    }
+    .btn:hover { background: #333; }
+    .btn:disabled { background: #aaa; border-color: #aaa; cursor: not-allowed; }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed #bbb;
+      padding: 16px;
+      background: #fafaf8;
+      transition: border-color 0.15s, background 0.15s;
+      margin-bottom: 16px;
+    }
+    .drop-zone.drag-over {
+      border-color: #1a1a1a;
+      border-style: solid;
+      background: #f2f0ec;
+    }
+
+    .section-label {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #999;
+      margin-bottom: 8px;
+    }
+    .section-label + .section-label { margin-top: 0; }
+    .section-block { margin-bottom: 20px; }
+    .section-block:last-child { margin-bottom: 0; }
+
+    /* Glyph grid */
+    .glyph-grid {
+      display: grid;
+      gap: 4px;
+      grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+    }
+
+    .glyph-slot {
+      border: 2px solid #ddd;
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      background: #f9f9f7;
+      transition: border-color 0.1s;
+      overflow: hidden;
+    }
+    .glyph-slot:hover { border-color: #888; }
+    .glyph-slot.loaded {
+      border-color: #1a1a1a;
+      background: #fff;
+    }
+
+    .slot-char {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ddd;
+      line-height: 1;
+    }
+    .loaded .slot-char { display: none; }
+
+    .slot-label {
+      font-size: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #ccc;
+      margin-top: 3px;
+    }
+    .loaded .slot-label { color: #888; }
+
+    .glyph-slot img {
+      width: 75%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+
+    .remove-btn {
+      position: absolute;
+      top: 0; right: 0;
+      width: 16px; height: 16px;
+      background: #1a1a1a;
+      color: #fff;
+      font-size: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .remove-btn:hover { background: #cc0000; }
+
+    /* Export */
+    .export-row { display: flex; align-items: center; gap: 16px; }
+    .export-msg { font-size: 0.75rem; color: #666; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div style="margin-bottom: 20px">
+      <h1>Fontastisk</h1>
+      <p class="subtitle">
+        Én PNG per tegn — filnavn bestemmer tegn automatisk.
+        Bokstaver: <code>A.png</code>, <code>ae.png</code>→Æ, <code>oe.png</code>→Ø, <code>aa.png</code>→Å.
+        Tall: <code>0.png</code>…<code>9.png</code>.
+        Tegnsetting: <code>period.png</code>, <code>comma.png</code>, <code>excl.png</code>, <code>question.png</code> osv.
+        Kun A–Å er obligatorisk.
       </p>
     </div>
 
-    <div class="bg-white rounded-xl border border-stone-200 p-4 mb-4 flex flex-wrap gap-4 items-end">
+    <div class="panel">
       <div>
-        <label class="block text-xs font-medium text-stone-500 mb-1 uppercase tracking-wide">Fontnavn</label>
-        <input id="fontName" type="text" value="MinFont"
-          class="border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48">
+        <label class="field-label">Fontnavn</label>
+        <input id="fontName" type="text" value="MinFont" class="field-input">
       </div>
-      <div class="ml-auto flex items-center gap-3">
-        <span id="statusText" class="text-sm text-stone-400">0 av 29 lastet</span>
-        <button id="bulkUploadBtn"
-          class="bg-stone-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-stone-700 transition-colors">
-          Last opp PNGer
-        </button>
+      <div>
+        <label class="field-label">Bokstav-case</label>
+        <div class="case-options">
+          <label><input type="radio" name="caseMode" value="upper" checked><span>Store (A)</span></label>
+          <label><input type="radio" name="caseMode" value="lower"><span>Små (a)</span></label>
+          <label><input type="radio" name="caseMode" value="both"><span>Begge</span></label>
+        </div>
       </div>
-    </div>
-
-    <div id="dropZone"
-      class="bg-white rounded-xl border-2 border-dashed border-stone-300 p-4 mb-4 transition-colors">
-      <div id="letterGrid" class="grid gap-2"
-        style="grid-template-columns: repeat(auto-fill, minmax(70px, 1fr))">
+      <div class="panel-right">
+        <span id="statusText" class="status-text">0 av 29 lastet</span>
+        <button id="bulkUploadBtn" class="btn">Last opp PNGer</button>
       </div>
     </div>
 
-    <div class="flex items-center gap-4">
-      <button id="exportBtn" disabled
-        class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-        Eksporter TTF
-      </button>
-      <span id="exportMsg" class="text-sm text-stone-500 hidden"></span>
+    <div id="dropZone" class="drop-zone">
+      <div class="section-block">
+        <div class="section-label">Bokstaver (A–Å) — obligatorisk</div>
+        <div id="letterGrid" class="glyph-grid"></div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Tall (0–9) — valgfritt</div>
+        <div id="numberGrid" class="glyph-grid"></div>
+      </div>
+      <div class="section-block">
+        <div class="section-label">Tegnsetting — valgfritt</div>
+        <div id="punctGrid" class="glyph-grid"></div>
+      </div>
+    </div>
+
+    <div class="export-row">
+      <button id="exportBtn" class="btn" disabled>Eksporter TTF</button>
+      <span id="exportMsg" class="export-msg hidden"></span>
     </div>
 
   </div>
 
-  <input id="fileInput" type="file" accept="image/png" multiple class="hidden">
+  <input id="fileInput" type="file" accept="image/png" multiple style="display:none">
 
   <script src="https://unpkg.com/opentype.js@1.3.4/dist/opentype.min.js"></script>
   <script>
     const LETTERS = [
       ...('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((c, i) => ({
-        char: c, unicode: 65 + i, glyphName: c,
+        char: c, unicode: 65 + i, glyphName: c, group: 'letter',
         aliases: [c, c.toLowerCase()],
       }))),
-      { char: 'Æ', unicode: 198, glyphName: 'AE',     aliases: ['Æ', 'æ', 'AE', 'ae'] },
-      { char: 'Ø', unicode: 216, glyphName: 'Oslash', aliases: ['Ø', 'ø', 'OE', 'oe'] },
-      { char: 'Å', unicode: 197, glyphName: 'Aring',  aliases: ['Å', 'å', 'AA', 'aa'] },
+      { char: 'Æ', unicode: 198, glyphName: 'AE',     group: 'letter', aliases: ['Æ','æ','AE','ae'] },
+      { char: 'Ø', unicode: 216, glyphName: 'Oslash', group: 'letter', aliases: ['Ø','ø','OE','oe'] },
+      { char: 'Å', unicode: 197, glyphName: 'Aring',  group: 'letter', aliases: ['Å','å','AA','aa'] },
     ];
+
+    const NUMBERS = [
+      { char:'0', unicode:48, glyphName:'zero',  group:'number', aliases:['0','zero'] },
+      { char:'1', unicode:49, glyphName:'one',   group:'number', aliases:['1','one'] },
+      { char:'2', unicode:50, glyphName:'two',   group:'number', aliases:['2','two'] },
+      { char:'3', unicode:51, glyphName:'three', group:'number', aliases:['3','three'] },
+      { char:'4', unicode:52, glyphName:'four',  group:'number', aliases:['4','four'] },
+      { char:'5', unicode:53, glyphName:'five',  group:'number', aliases:['5','five'] },
+      { char:'6', unicode:54, glyphName:'six',   group:'number', aliases:['6','six'] },
+      { char:'7', unicode:55, glyphName:'seven', group:'number', aliases:['7','seven'] },
+      { char:'8', unicode:56, glyphName:'eight', group:'number', aliases:['8','eight'] },
+      { char:'9', unicode:57, glyphName:'nine',  group:'number', aliases:['9','nine'] },
+    ];
+
+    const PUNCTUATION = [
+      { char:'.', unicode:46,  glyphName:'period',      group:'punct', aliases:['period','dot','.'] },
+      { char:',', unicode:44,  glyphName:'comma',       group:'punct', aliases:['comma',','] },
+      { char:'!', unicode:33,  glyphName:'exclam',      group:'punct', aliases:['excl','exclam','exclamation','!'] },
+      { char:'?', unicode:63,  glyphName:'question',    group:'punct', aliases:['question','?'] },
+      { char:':', unicode:58,  glyphName:'colon',       group:'punct', aliases:['colon',':'] },
+      { char:';', unicode:59,  glyphName:'semicolon',   group:'punct', aliases:['semicolon',';'] },
+      { char:'-', unicode:45,  glyphName:'hyphen',      group:'punct', aliases:['hyphen','minus','-'] },
+      { char:'(', unicode:40,  glyphName:'parenleft',   group:'punct', aliases:['parenleft','lpar','('] },
+      { char:')', unicode:41,  glyphName:'parenright',  group:'punct', aliases:['parenright','rpar',')'] },
+      { char:'/', unicode:47,  glyphName:'slash',       group:'punct', aliases:['slash','/'] },
+      { char:'@', unicode:64,  glyphName:'at',          group:'punct', aliases:['at','@'] },
+      { char:'&', unicode:38,  glyphName:'ampersand',   group:'punct', aliases:['ampersand','amp','&'] },
+      { char:'"', unicode:34,  glyphName:'quotedbl',    group:'punct', aliases:['quotedbl','dquote','"'] },
+      { char:"'", unicode:39,  glyphName:'quotesingle', group:'punct', aliases:["quotesingle","apostrophe","'"] },
+      { char:'#', unicode:35,  glyphName:'numbersign',  group:'punct', aliases:['hash','numbersign','#'] },
+      { char:'%', unicode:37,  glyphName:'percent',     group:'punct', aliases:['percent','%'] },
+      { char:'+', unicode:43,  glyphName:'plus',        group:'punct', aliases:['plus','+'] },
+      { char:'=', unicode:61,  glyphName:'equal',       group:'punct', aliases:['equal','='] },
+      { char:'_', unicode:95,  glyphName:'underscore',  group:'punct', aliases:['underscore','_'] },
+      { char:'*', unicode:42,  glyphName:'asterisk',    group:'punct', aliases:['asterisk','star','*'] },
+    ];
+
+    const ALL_CHARS = [...LETTERS, ...NUMBERS, ...PUNCTUATION];
 
     const glyphImages = {};
 
-    function filenameToLetter(filename) {
+    function filenameToChar(filename) {
       const base = filename.replace(/\.[^.]+$/, '').trim();
-      const sorted = [...LETTERS].sort((a, b) =>
+      const sorted = [...ALL_CHARS].sort((a, b) =>
         Math.max(...b.aliases.map(s => s.length)) - Math.max(...a.aliases.map(s => s.length))
       );
-      for (const letter of sorted) {
-        for (const alias of letter.aliases) {
-          if (base === alias || base.toLowerCase() === alias.toLowerCase()) return letter;
+      for (const ch of sorted) {
+        for (const alias of ch.aliases) {
+          if (base === alias || base.toLowerCase() === alias.toLowerCase()) return ch;
         }
       }
       return null;
     }
 
-    function buildGrid() {
-      const grid = document.getElementById('letterGrid');
-      grid.innerHTML = '';
-      for (const letter of LETTERS) {
-        const loaded = !!glyphImages[letter.char];
-        const slot = document.createElement('div');
-        slot.className = [
-          'rounded-lg border-2 p-1.5 text-center relative cursor-pointer transition-all select-none',
-          loaded
-            ? 'border-blue-400 bg-blue-50 hover:border-blue-500'
-            : 'border-stone-200 hover:border-stone-400',
-        ].join(' ');
-        slot.dataset.char = letter.char;
+    function makeSlot(ch) {
+      const loaded = !!glyphImages[ch.char];
+      const slot = document.createElement('div');
+      slot.className = 'glyph-slot' + (loaded ? ' loaded' : '');
+      slot.dataset.char = ch.char;
 
-        if (loaded) {
-          slot.innerHTML = `
-            <img src="${glyphImages[letter.char].dataUrl}"
-              class="w-full aspect-square object-contain mb-0.5" style="image-rendering: pixelated">
-            <div class="text-xs font-bold text-stone-700">${letter.char}</div>
-            <button class="remove-btn absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full text-xs leading-none flex items-center justify-center hover:bg-red-600">×</button>
-          `;
-        } else {
-          slot.innerHTML = `
-            <div class="aspect-square flex items-center justify-center">
-              <span class="text-2xl font-bold text-stone-200">${letter.char}</span>
-            </div>
-            <div class="text-xs text-stone-300">${letter.char}</div>
-          `;
-        }
-
-        slot.addEventListener('click', (e) => {
-          if (e.target.closest('.remove-btn')) {
-            delete glyphImages[letter.char];
-            buildGrid();
-            updateStatus();
-            return;
-          }
-          const inp = document.createElement('input');
-          inp.type = 'file'; inp.accept = 'image/png';
-          inp.onchange = (ev) => { if (ev.target.files[0]) loadFile(ev.target.files[0], letter); };
-          inp.click();
-        });
-
-        grid.appendChild(slot);
+      if (loaded) {
+        slot.innerHTML = `
+          <img src="${glyphImages[ch.char].dataUrl}" alt="${ch.char}">
+          <span class="slot-label">${ch.char}</span>
+          <button class="remove-btn" title="Fjern">×</button>
+        `;
+      } else {
+        slot.innerHTML = `
+          <span class="slot-char">${ch.char}</span>
+          <span class="slot-label">${ch.char}</span>
+        `;
       }
+
+      slot.addEventListener('click', (e) => {
+        if (e.target.closest('.remove-btn')) {
+          delete glyphImages[ch.char];
+          const fresh = makeSlot(ch);
+          slot.replaceWith(fresh);
+          updateStatus();
+          return;
+        }
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/png';
+        inp.onchange = (ev) => { if (ev.target.files[0]) loadFile(ev.target.files[0], ch); };
+        inp.click();
+      });
+
+      return slot;
     }
 
-    function loadFile(file, letterObj) {
+    function buildGrid() {
+      const populate = (gridId, chars) => {
+        const grid = document.getElementById(gridId);
+        grid.innerHTML = '';
+        for (const ch of chars) grid.appendChild(makeSlot(ch));
+      };
+      populate('letterGrid', LETTERS);
+      populate('numberGrid', NUMBERS);
+      populate('punctGrid', PUNCTUATION);
+    }
+
+    function refreshSlot(ch) {
+      const existing = document.querySelector(`.glyph-slot[data-char="${CSS.escape(ch.char)}"]`);
+      if (existing) existing.replaceWith(makeSlot(ch));
+    }
+
+    function loadFile(file, charObj) {
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => {
           const dataUrl = e.target.result;
           const img = new Image();
           img.onload = () => {
-            glyphImages[letterObj.char] = { dataUrl, img };
-            buildGrid();
+            glyphImages[charObj.char] = { dataUrl, img };
+            refreshSlot(charObj);
             updateStatus();
             resolve();
           };
@@ -148,9 +402,11 @@
     }
 
     function updateStatus() {
-      const count = Object.keys(glyphImages).length;
-      document.getElementById('statusText').textContent = `${count} av 29 lastet`;
-      document.getElementById('exportBtn').disabled = count === 0;
+      const letterCount = LETTERS.filter(l => glyphImages[l.char]).length;
+      const total = Object.keys(glyphImages).length;
+      document.getElementById('statusText').textContent =
+        `${letterCount}/29 bokstaver` + (total > letterCount ? `, ${total - letterCount} ekstra` : '');
+      document.getElementById('exportBtn').disabled = letterCount === 0;
     }
 
     async function handleFiles(files) {
@@ -158,13 +414,13 @@
       const loads = [];
       for (const file of files) {
         if (!file.type.includes('png')) continue;
-        const letter = filenameToLetter(file.name);
-        if (letter) { loads.push(loadFile(file, letter)); }
-        else { unmatched.push(file.name); }
+        const ch = filenameToChar(file.name);
+        if (ch) loads.push(loadFile(file, ch));
+        else unmatched.push(file.name);
       }
       await Promise.all(loads);
       if (unmatched.length > 0) {
-        alert(`Ukjente filnavn (ikke importert):\n${unmatched.join('\n')}\n\nBruk f.eks: A.png, ae.png, oe.png, aa.png`);
+        alert(`Ukjente filnavn:\n${unmatched.join('\n')}\n\nEksempler: A.png, ae.png, 0.png, period.png, excl.png`);
       }
     }
 
@@ -187,13 +443,11 @@
       const W = canvas.width, H = canvas.height;
       const d = ctx.getImageData(0, 0, W, H).data;
 
-      // Threshold to 1 (dark) / 0 (light)
       const px = new Uint8Array(W * H);
       for (let i = 0; i < W * H; i++) {
         px[i] = (0.299 * d[i*4] + 0.587 * d[i*4+1] + 0.114 * d[i*4+2]) < 128 ? 1 : 0;
       }
 
-      // Auto-invert if majority dark (light letters on dark background)
       let dark = 0;
       for (let i = 0; i < px.length; i++) dark += px[i];
       if (dark > px.length * 0.5) {
@@ -207,19 +461,15 @@
       const ty = (y) => ASCENDER - y * scaleY;
 
       const path = new opentype.Path();
-
-      // For each row, find horizontal runs of dark pixels.
-      // Each run becomes a CCW rectangle in font coords (Y-up) → filled in TrueType.
       for (let y = 0; y < H; y++) {
         let runStart = -1;
         for (let x = 0; x <= W; x++) {
-          const dark = x < W && px[y * W + x] === 1;
-          if (runStart < 0 && dark) {
+          const isDark = x < W && px[y * W + x] === 1;
+          if (runStart < 0 && isDark) {
             runStart = x;
-          } else if (runStart >= 0 && !dark) {
+          } else if (runStart >= 0 && !isDark) {
             const x0 = tx(runStart), x1 = tx(x);
             const yBot = ty(y + 1), yTop = ty(y);
-            // CCW in Y-up: right → up → left → down
             path.moveTo(x0, yBot);
             path.lineTo(x1, yBot);
             path.lineTo(x1, yTop);
@@ -235,6 +485,7 @@
 
     async function exportFont() {
       const fontName = document.getElementById('fontName').value.trim() || 'MinFont';
+      const caseMode = document.querySelector('input[name="caseMode"]:checked').value;
       const msg = document.getElementById('exportMsg');
       msg.classList.remove('hidden');
       msg.textContent = 'Genererer font...';
@@ -243,8 +494,8 @@
       const notdefPath = new opentype.Path();
       notdefPath.moveTo(50, DESCENDER); notdefPath.lineTo(450, DESCENDER);
       notdefPath.lineTo(450, ASCENDER); notdefPath.lineTo(50, ASCENDER); notdefPath.close();
-      notdefPath.moveTo(100, DESCENDER + 50); notdefPath.lineTo(100, ASCENDER - 50);
-      notdefPath.lineTo(400, ASCENDER - 50); notdefPath.lineTo(400, DESCENDER + 50); notdefPath.close();
+      notdefPath.moveTo(100, DESCENDER+50); notdefPath.lineTo(100, ASCENDER-50);
+      notdefPath.lineTo(400, ASCENDER-50); notdefPath.lineTo(400, DESCENDER+50); notdefPath.close();
 
       const glyphs = [
         new opentype.Glyph({ name: '.notdef', unicode: 0, advanceWidth: 500, path: notdefPath }),
@@ -252,18 +503,26 @@
       ];
 
       let processed = 0;
-      for (const letter of LETTERS) {
-        if (!glyphImages[letter.char]) continue;
-        msg.textContent = `Behandler ${letter.char}... (${processed + 1}/${Object.keys(glyphImages).length})`;
+      for (const ch of ALL_CHARS) {
+        if (!glyphImages[ch.char]) continue;
+        msg.textContent = `Behandler ${ch.char}...`;
         await new Promise(r => setTimeout(r, 10));
         try {
-          const { path, advanceWidth } = imageToGlyphPath(glyphImages[letter.char].img);
-          glyphs.push(new opentype.Glyph({
-            name: letter.glyphName, unicode: letter.unicode, advanceWidth, path,
-          }));
+          const { path, advanceWidth } = imageToGlyphPath(glyphImages[ch.char].img);
+
+          let unicodes;
+          if (ch.group === 'letter') {
+            if (caseMode === 'upper')      unicodes = [ch.unicode];
+            else if (caseMode === 'lower') unicodes = [ch.unicode + 32];
+            else                           unicodes = [ch.unicode, ch.unicode + 32];
+          } else {
+            unicodes = [ch.unicode];
+          }
+
+          glyphs.push(new opentype.Glyph({ name: ch.glyphName, unicodes, advanceWidth, path }));
           processed++;
         } catch (err) {
-          console.error(`Feil ved ${letter.char}:`, err);
+          console.error(`Feil ved ${ch.char}:`, err);
         }
       }
 
@@ -273,7 +532,7 @@
       });
 
       font.download(`${fontName}.ttf`);
-      msg.textContent = `Ferdig — ${processed} bokstaver eksportert som ${fontName}.ttf`;
+      msg.textContent = `Ferdig — ${processed} tegn eksportert som ${fontName}.ttf`;
       document.getElementById('exportBtn').disabled = false;
       setTimeout(() => msg.classList.add('hidden'), 5000);
     }
@@ -294,17 +553,14 @@
     const dropZone = document.getElementById('dropZone');
     dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
-      dropZone.classList.add('border-blue-400', 'bg-blue-50');
-      dropZone.classList.remove('border-stone-300');
+      dropZone.classList.add('drag-over');
     });
-    ['dragleave', 'dragend'].forEach(evt => dropZone.addEventListener(evt, () => {
-      dropZone.classList.remove('border-blue-400', 'bg-blue-50');
-      dropZone.classList.add('border-stone-300');
-    }));
+    ['dragleave', 'dragend'].forEach(evt =>
+      dropZone.addEventListener(evt, () => dropZone.classList.remove('drag-over'))
+    );
     dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
-      dropZone.classList.remove('border-blue-400', 'bg-blue-50');
-      dropZone.classList.add('border-stone-300');
+      dropZone.classList.remove('drag-over');
       handleFiles(Array.from(e.dataTransfer.files));
     });
   </script>
