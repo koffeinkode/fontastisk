@@ -140,8 +140,25 @@
     /* Glyph grid */
     .glyph-grid {
       display: grid;
-      gap: 4px;
+      gap: 4px 4px;
       grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+    }
+
+    .slot-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .slot-filename {
+      font-size: 0.5rem;
+      color: #aaa;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
 
     .glyph-slot {
@@ -242,6 +259,10 @@
       </div>
     </div>
 
+    <p style="font-size:0.7rem;color:#888;margin-bottom:8px;">
+      Hver PNG må ha filnavnet som vises under tegnet. Dra og slipp flere filer samtidig, eller klikk enkelt tegn.
+    </p>
+
     <div id="dropZone" class="drop-zone">
       <div class="section-block">
         <div class="section-label">Bokstaver (A–Å) — obligatorisk</div>
@@ -295,15 +316,15 @@
       { char:'.', unicode:46,  glyphName:'period',      group:'punct', aliases:['punktum','period','.'] },
       { char:',', unicode:44,  glyphName:'comma',       group:'punct', aliases:['komma','comma',','] },
       { char:'!', unicode:33,  glyphName:'exclam',      group:'punct', aliases:['utropstegn','excl','!'] },
-      { char:'?', unicode:63,  glyphName:'question',    group:'punct', aliases:['sporsmalstegn','question','?'] },
+      { char:'?', unicode:63,  glyphName:'question',    group:'punct', aliases:['sporsmal','question','?'] },
       { char:':', unicode:58,  glyphName:'colon',       group:'punct', aliases:['kolon','colon',':'] },
       { char:';', unicode:59,  glyphName:'semicolon',   group:'punct', aliases:['semikolon','semicolon',';'] },
       { char:'-', unicode:45,  glyphName:'hyphen',      group:'punct', aliases:['bindestrek','hyphen','-'] },
       { char:'(', unicode:40,  glyphName:'parenleft',   group:'punct', aliases:['venstreparentes','parenleft','('] },
       { char:')', unicode:41,  glyphName:'parenright',  group:'punct', aliases:['hoyreparentes','parenright',')'] },
       { char:'/', unicode:47,  glyphName:'slash',       group:'punct', aliases:['skrastrek','slash','/'] },
-      { char:'@', unicode:64,  glyphName:'at',          group:'punct', aliases:['krøllalfa','krollalfa','at','@'] },
-      { char:'&', unicode:38,  glyphName:'ampersand',   group:'punct', aliases:['ogtegn','ampersand','&'] },
+      { char:'@', unicode:64,  glyphName:'at',          group:'punct', aliases:['alfakroll','at','@'] },
+      { char:'&', unicode:38,  glyphName:'ampersand',   group:'punct', aliases:['ampersand','ogtegn','&'] },
       { char:'"', unicode:34,  glyphName:'quotedbl',    group:'punct', aliases:['anforselstegn','quotedbl','"'] },
       { char:"'", unicode:39,  glyphName:'quotesingle', group:'punct', aliases:['apostrof','quotesingle',"'"] },
       { char:'#', unicode:35,  glyphName:'numbersign',  group:'punct', aliases:['emneknagg','hash','#'] },
@@ -333,6 +354,8 @@
 
     function makeSlot(ch) {
       const loaded = !!glyphImages[ch.char];
+      const filename = ch.aliases[0] + '.png';
+
       const slot = document.createElement('div');
       slot.className = 'glyph-slot' + (loaded ? ' loaded' : '');
       slot.dataset.char = ch.char;
@@ -354,7 +377,7 @@
         if (e.target.closest('.remove-btn')) {
           delete glyphImages[ch.char];
           const fresh = makeSlot(ch);
-          slot.replaceWith(fresh);
+          wrap.replaceWith(fresh.parentElement || fresh);
           updateStatus();
           return;
         }
@@ -364,7 +387,16 @@
         inp.click();
       });
 
-      return slot;
+      const wrap = document.createElement('div');
+      wrap.className = 'slot-wrap';
+      wrap.appendChild(slot);
+
+      const label = document.createElement('div');
+      label.className = 'slot-filename';
+      label.textContent = filename;
+      wrap.appendChild(label);
+
+      return wrap;
     }
 
     function buildGrid() {
@@ -380,7 +412,7 @@
 
     function refreshSlot(ch) {
       const existing = document.querySelector(`.glyph-slot[data-char="${CSS.escape(ch.char)}"]`);
-      if (existing) existing.replaceWith(makeSlot(ch));
+      if (existing) existing.closest('.slot-wrap').replaceWith(makeSlot(ch));
     }
 
     function loadFile(file, charObj) {
