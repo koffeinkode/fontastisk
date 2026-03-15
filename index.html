@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fontene</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-stone-100 min-h-screen p-6">
+  <div class="max-w-4xl mx-auto">
+
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-stone-800">Fontene</h1>
+      <p class="text-stone-500 text-sm mt-1">
+        Én PNG per bokstav. Filnavn bestemmer bokstav automatisk:
+        <code class="bg-stone-200 px-1 rounded">A.png</code>,
+        <code class="bg-stone-200 px-1 rounded">ae.png</code> → Æ,
+        <code class="bg-stone-200 px-1 rounded">oe.png</code> → Ø,
+        <code class="bg-stone-200 px-1 rounded">aa.png</code> → Å.
+        Bildets bredde bestemmer tegnbredden.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-stone-200 p-4 mb-4 flex flex-wrap gap-4 items-end">
+      <div>
+        <label class="block text-xs font-medium text-stone-500 mb-1 uppercase tracking-wide">Fontnavn</label>
+        <input id="fontName" type="text" value="MinFont"
+          class="border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48">
+      </div>
+      <div class="ml-auto flex items-center gap-3">
+        <span id="statusText" class="text-sm text-stone-400">0 av 29 lastet</span>
+        <button id="bulkUploadBtn"
+          class="bg-stone-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-stone-700 transition-colors">
+          Last opp PNGer
+        </button>
+      </div>
+    </div>
+
+    <div id="dropZone"
+      class="bg-white rounded-xl border-2 border-dashed border-stone-300 p-4 mb-4 transition-colors">
+      <div id="letterGrid" class="grid gap-2"
+        style="grid-template-columns: repeat(auto-fill, minmax(70px, 1fr))">
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <button id="exportBtn" disabled
+        class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+        Eksporter TTF
+      </button>
+      <span id="exportMsg" class="text-sm text-stone-500 hidden"></span>
+    </div>
+
+  </div>
+
+  <input id="fileInput" type="file" accept="image/png" multiple class="hidden">
+
+  <script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.js"></script>
+  <script src="https://unpkg.com/opentype.js@1.3.4/dist/opentype.min.js"></script>
+  <script>
+    const LETTERS = [
+      ...('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((c, i) => ({
+        char: c, unicode: 65 + i, glyphName: c,
+        aliases: [c, c.toLowerCase()],
+      }))),
+      { char: 'Æ', unicode: 198, glyphName: 'AE',     aliases: ['Æ', 'æ', 'AE', 'ae'] },
+      { char: 'Ø', unicode: 216, glyphName: 'Oslash', aliases: ['Ø', 'ø', 'OE', 'oe'] },
+      { char: 'Å', unicode: 197, glyphName: 'Aring',  aliases: ['Å', 'å', 'AA', 'aa'] },
+    ];
+
+    const glyphImages = {};
+
+    function filenameToLetter(filename) {
+      const base = filename.replace(/\.[^.]+$/, '').trim();
+      const sorted = [...LETTERS].sort((a, b) =>
+        Math.max(...b.aliases.map(s => s.length)) - Math.max(...a.aliases.map(s => s.length))
+      );
+      for (const letter of sorted) {
+        for (const alias of letter.aliases) {
+          if (base === alias || base.toLowerCase() === alias.toLowerCase()) return letter;
+        }
+      }
+      return null;
+    }
+
+    function buildGrid() {
+      const grid = document.getElementById('letterGrid');
+      grid.innerHTML = '';
+      for (const letter of LETTERS) {
+        const loaded = !!glyphImages[letter.char];
+        const slot = document.createElement('div');
+        slot.className = [
+          'rounded-lg border-2 p-1.5 text-center relative cursor-pointer transition-all select-none',
+          loaded
+            ? 'border-blue-400 bg-blue-50 hover:border-blue-500'
+            : 'border-stone-200 hover:border-stone-400',
+        ].join(' ');
+        slot.dataset.char = letter.char;
+
+        if (loaded) {
+          slot.innerHTML = `
+            <img src="${glyphImages[letter.char].dataUrl}"
+              class="w-full aspect-square object-contain mb-0.5" style="image-rendering: pixelated">
+            <div class="text-xs font-bold text-stone-700">${letter.char}</div>
+            <button class="remove-btn absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full text-xs leading-none flex items-center justify-center hover:bg-red-600">×</button>
+          `;
+        } else {
+          slot.innerHTML = `
+            <div class="aspect-square flex items-center justify-center">
+              <span class="text-2xl font-bold text-stone-200">${letter.char}</span>
+            </div>
+            <div class="text-xs text-stone-300">${letter.char}</div>
+          `;
+        }
+
+        slot.addEventListener('click', (e) => {
+          if (e.target.closest('.remove-btn')) {
+            delete glyphImages[letter.char];
+            buildGrid();
+            updateStatus();
+            return;
+          }
+          const inp = document.createElement('input');
+          inp.type = 'file'; inp.accept = 'image/png';
+          inp.onchange = (ev) => { if (ev.target.files[0]) loadFile(ev.target.files[0], letter); };
+          inp.click();
+        });
+
+        grid.appendChild(slot);
+      }
+    }
+
+    function loadFile(file, letterObj) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target.result;
+          const img = new Image();
+          img.onload = () => {
+            glyphImages[letterObj.char] = { dataUrl, img };
+            buildGrid();
+            updateStatus();
+            resolve();
+          };
+          img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function updateStatus() {
+      const count = Object.keys(glyphImages).length;
+      document.getElementById('statusText').textContent = `${count} av 29 lastet`;
+      document.getElementById('exportBtn').disabled = count === 0;
+    }
+
+    async function handleFiles(files) {
+      const unmatched = [];
+      const loads = [];
+      for (const file of files) {
+        if (!file.type.includes('png')) continue;
+        const letter = filenameToLetter(file.name);
+        if (letter) { loads.push(loadFile(file, letter)); }
+        else { unmatched.push(file.name); }
+      }
+      await Promise.all(loads);
+      if (unmatched.length > 0) {
+        alert(`Ukjente filnavn (ikke importert):\n${unmatched.join('\n')}\n\nBruk f.eks: A.png, ae.png, oe.png, aa.png`);
+      }
+    }
+
+    // --- Font generation ---
+
+    const ASCENDER = 800;
+    const DESCENDER = -200;
+    const UPM = 1000;
+    const SIDE_BEARING = 40;
+
+    function imageToSVG(img) {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const d = imgData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const luma = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+        const v = luma < 128 ? 0 : 255;
+        d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      const svgStr = ImageTracer.imagedataToSVG(imgData, {
+        colorsampling: 0, numberofcolors: 2, mincolorratio: 0, colorquantcycles: 1,
+        ltres: 0.5, qtres: 0.5, pathomit: 4, rightangleenhance: true,
+        scale: 1, roundcoords: 1, viewbox: false, desc: false, lcpr: 0, qcpr: 0,
+      });
+
+      return { svgStr, width: canvas.width, height: canvas.height };
+    }
+
+    function buildGlyphPath(svgStr, imgWidth, imgHeight) {
+      const scaleY = UPM / imgHeight;
+      const scaleX = scaleY;
+      const advanceWidth = Math.round(imgWidth * scaleX + SIDE_BEARING * 2);
+      const tx = (x) => Math.round(x * scaleX + SIDE_BEARING);
+      const ty = (y) => Math.round(ASCENDER - y * scaleY);
+
+      const parser = new DOMParser();
+      const svgDoc = parser.parseFromString(svgStr, 'image/svg+xml');
+      const path = new opentype.Path();
+
+      let usedGroups = 0;
+      for (const g of svgDoc.querySelectorAll('g')) {
+        const fill = (g.getAttribute('fill') || '').toLowerCase().replace(/\s/g, '');
+        const isWhite = fill === '#ffffff' || fill === '#fff' || fill === 'white';
+        if (isWhite) continue;
+        for (const pathEl of g.querySelectorAll('path')) {
+          const d = pathEl.getAttribute('d');
+          if (d) { appendTransformedPath(path, d, tx, ty); usedGroups++; }
+        }
+      }
+
+      if (usedGroups === 0) {
+        for (const pathEl of svgDoc.querySelectorAll('path')) {
+          const d = pathEl.getAttribute('d');
+          if (d) appendTransformedPath(path, d, tx, ty);
+        }
+      }
+
+      return { path, advanceWidth };
+    }
+
+    function appendTransformedPath(opPath, d, tx, ty) {
+      const re = /([MmLlHhVvCcQqZz])([^MmLlHhVvCcQqZz]*)/g;
+      let match, cx = 0, cy = 0, sx = 0, sy = 0;
+
+      while ((match = re.exec(d)) !== null) {
+        const cmd = match[1];
+        const nums = match[2].trim() === '' ? [] :
+          match[2].trim().split(/[\s,]+/).filter(Boolean).map(Number);
+
+        switch (cmd) {
+          case 'M':
+            for (let i = 0; i < nums.length; i += 2) {
+              cx = nums[i]; cy = nums[i + 1];
+              opPath.moveTo(tx(cx), ty(cy));
+              if (i === 0) { sx = cx; sy = cy; }
+            }
+            break;
+          case 'm':
+            for (let i = 0; i < nums.length; i += 2) {
+              cx += nums[i]; cy += nums[i + 1];
+              opPath.moveTo(tx(cx), ty(cy));
+              if (i === 0) { sx = cx; sy = cy; }
+            }
+            break;
+          case 'L':
+            for (let i = 0; i < nums.length; i += 2) {
+              cx = nums[i]; cy = nums[i + 1];
+              opPath.lineTo(tx(cx), ty(cy));
+            }
+            break;
+          case 'l':
+            for (let i = 0; i < nums.length; i += 2) {
+              cx += nums[i]; cy += nums[i + 1];
+              opPath.lineTo(tx(cx), ty(cy));
+            }
+            break;
+          case 'H':
+            for (let i = 0; i < nums.length; i++) {
+              cx = nums[i]; opPath.lineTo(tx(cx), ty(cy));
+            }
+            break;
+          case 'h':
+            for (let i = 0; i < nums.length; i++) {
+              cx += nums[i]; opPath.lineTo(tx(cx), ty(cy));
+            }
+            break;
+          case 'V':
+            for (let i = 0; i < nums.length; i++) {
+              cy = nums[i]; opPath.lineTo(tx(cx), ty(cy));
+            }
+            break;
+          case 'v':
+            for (let i = 0; i < nums.length; i++) {
+              cy += nums[i]; opPath.lineTo(tx(cx), ty(cy));
+            }
+            break;
+          case 'C':
+            for (let i = 0; i < nums.length; i += 6) {
+              opPath.curveTo(tx(nums[i]), ty(nums[i+1]), tx(nums[i+2]), ty(nums[i+3]), tx(nums[i+4]), ty(nums[i+5]));
+              cx = nums[i + 4]; cy = nums[i + 5];
+            }
+            break;
+          case 'c':
+            for (let i = 0; i < nums.length; i += 6) {
+              opPath.curveTo(
+                tx(cx + nums[i]), ty(cy + nums[i+1]),
+                tx(cx + nums[i+2]), ty(cy + nums[i+3]),
+                tx(cx + nums[i+4]), ty(cy + nums[i+5])
+              );
+              cx += nums[i + 4]; cy += nums[i + 5];
+            }
+            break;
+          case 'Q':
+            for (let i = 0; i < nums.length; i += 4) {
+              opPath.quadraticCurveTo(tx(nums[i]), ty(nums[i+1]), tx(nums[i+2]), ty(nums[i+3]));
+              cx = nums[i + 2]; cy = nums[i + 3];
+            }
+            break;
+          case 'q':
+            for (let i = 0; i < nums.length; i += 4) {
+              opPath.quadraticCurveTo(
+                tx(cx + nums[i]), ty(cy + nums[i+1]),
+                tx(cx + nums[i+2]), ty(cy + nums[i+3])
+              );
+              cx += nums[i + 2]; cy += nums[i + 3];
+            }
+            break;
+          case 'Z': case 'z':
+            opPath.close();
+            cx = sx; cy = sy;
+            break;
+        }
+      }
+    }
+
+    async function exportFont() {
+      const fontName = document.getElementById('fontName').value.trim() || 'MinFont';
+      const msg = document.getElementById('exportMsg');
+      msg.classList.remove('hidden');
+      msg.textContent = 'Genererer font...';
+      document.getElementById('exportBtn').disabled = true;
+
+      const notdefPath = new opentype.Path();
+      notdefPath.moveTo(50, DESCENDER); notdefPath.lineTo(450, DESCENDER);
+      notdefPath.lineTo(450, ASCENDER); notdefPath.lineTo(50, ASCENDER); notdefPath.close();
+      notdefPath.moveTo(100, DESCENDER + 50); notdefPath.lineTo(100, ASCENDER - 50);
+      notdefPath.lineTo(400, ASCENDER - 50); notdefPath.lineTo(400, DESCENDER + 50); notdefPath.close();
+
+      const glyphs = [
+        new opentype.Glyph({ name: '.notdef', unicode: 0, advanceWidth: 500, path: notdefPath }),
+        new opentype.Glyph({ name: 'space', unicode: 32, advanceWidth: 300, path: new opentype.Path() }),
+      ];
+
+      let processed = 0;
+      for (const letter of LETTERS) {
+        if (!glyphImages[letter.char]) continue;
+        msg.textContent = `Behandler ${letter.char}... (${processed + 1}/${Object.keys(glyphImages).length})`;
+        await new Promise(r => setTimeout(r, 10));
+        try {
+          const { svgStr, width, height } = imageToSVG(glyphImages[letter.char].img);
+          const { path, advanceWidth } = buildGlyphPath(svgStr, width, height);
+          glyphs.push(new opentype.Glyph({
+            name: letter.glyphName, unicode: letter.unicode, advanceWidth, path,
+          }));
+          processed++;
+        } catch (err) {
+          console.error(`Feil ved ${letter.char}:`, err);
+        }
+      }
+
+      const font = new opentype.Font({
+        familyName: fontName, styleName: 'Regular',
+        unitsPerEm: UPM, ascender: ASCENDER, descender: DESCENDER, glyphs,
+      });
+
+      font.download(`${fontName}.ttf`);
+      msg.textContent = `Ferdig — ${processed} bokstaver eksportert som ${fontName}.ttf`;
+      document.getElementById('exportBtn').disabled = false;
+      setTimeout(() => msg.classList.add('hidden'), 5000);
+    }
+
+    // Init
+    buildGrid();
+    updateStatus();
+
+    document.getElementById('bulkUploadBtn').addEventListener('click', () => {
+      document.getElementById('fileInput').click();
+    });
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      handleFiles(Array.from(e.target.files));
+      e.target.value = '';
+    });
+    document.getElementById('exportBtn').addEventListener('click', exportFont);
+
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-blue-400', 'bg-blue-50');
+      dropZone.classList.remove('border-stone-300');
+    });
+    ['dragleave', 'dragend'].forEach(evt => dropZone.addEventListener(evt, () => {
+      dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+      dropZone.classList.add('border-stone-300');
+    }));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+      dropZone.classList.add('border-stone-300');
+      handleFiles(Array.from(e.dataTransfer.files));
+    });
+  </script>
+</body>
+</html>
