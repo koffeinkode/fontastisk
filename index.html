@@ -402,8 +402,7 @@
         await new Promise(r => setTimeout(r, 10));
         try {
           const { svgStr, width, height } = imageToSVG(glyphImages[letter.char].img);
-          const { path: rawPath, advanceWidth } = buildGlyphPath(svgStr, width, height);
-          const path = reversePathWinding(rawPath);
+          const { path, advanceWidth } = buildGlyphPath(svgStr, width, height);
           glyphs.push(new opentype.Glyph({
             name: letter.glyphName, unicode: letter.unicode, advanceWidth, path,
           }));
