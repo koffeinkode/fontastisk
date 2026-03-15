@@ -218,7 +218,7 @@
         Én PNG per tegn — filnavn bestemmer tegn automatisk.
         Bokstaver: <code>A.png</code>, <code>ae.png</code>→Æ, <code>oe.png</code>→Ø, <code>aa.png</code>→Å.
         Tall: <code>0.png</code>…<code>9.png</code>.
-        Tegnsetting: <code>period.png</code>, <code>comma.png</code>, <code>excl.png</code>, <code>question.png</code> osv.
+        Tegnsetting: <code>punktum.png</code>, <code>komma.png</code>, <code>utropstegn.png</code>, <code>sporsmalstegn.png</code>, <code>kolon.png</code>, <code>bindestrek.png</code> osv.
         Kun A–Å er obligatorisk.
       </p>
     </div>
@@ -292,26 +292,26 @@
     ];
 
     const PUNCTUATION = [
-      { char:'.', unicode:46,  glyphName:'period',      group:'punct', aliases:['period','dot','.'] },
-      { char:',', unicode:44,  glyphName:'comma',       group:'punct', aliases:['comma',','] },
-      { char:'!', unicode:33,  glyphName:'exclam',      group:'punct', aliases:['excl','exclam','exclamation','!'] },
-      { char:'?', unicode:63,  glyphName:'question',    group:'punct', aliases:['question','?'] },
-      { char:':', unicode:58,  glyphName:'colon',       group:'punct', aliases:['colon',':'] },
-      { char:';', unicode:59,  glyphName:'semicolon',   group:'punct', aliases:['semicolon',';'] },
-      { char:'-', unicode:45,  glyphName:'hyphen',      group:'punct', aliases:['hyphen','minus','-'] },
-      { char:'(', unicode:40,  glyphName:'parenleft',   group:'punct', aliases:['parenleft','lpar','('] },
-      { char:')', unicode:41,  glyphName:'parenright',  group:'punct', aliases:['parenright','rpar',')'] },
-      { char:'/', unicode:47,  glyphName:'slash',       group:'punct', aliases:['slash','/'] },
-      { char:'@', unicode:64,  glyphName:'at',          group:'punct', aliases:['at','@'] },
-      { char:'&', unicode:38,  glyphName:'ampersand',   group:'punct', aliases:['ampersand','amp','&'] },
-      { char:'"', unicode:34,  glyphName:'quotedbl',    group:'punct', aliases:['quotedbl','dquote','"'] },
-      { char:"'", unicode:39,  glyphName:'quotesingle', group:'punct', aliases:["quotesingle","apostrophe","'"] },
-      { char:'#', unicode:35,  glyphName:'numbersign',  group:'punct', aliases:['hash','numbersign','#'] },
-      { char:'%', unicode:37,  glyphName:'percent',     group:'punct', aliases:['percent','%'] },
-      { char:'+', unicode:43,  glyphName:'plus',        group:'punct', aliases:['plus','+'] },
-      { char:'=', unicode:61,  glyphName:'equal',       group:'punct', aliases:['equal','='] },
-      { char:'_', unicode:95,  glyphName:'underscore',  group:'punct', aliases:['underscore','_'] },
-      { char:'*', unicode:42,  glyphName:'asterisk',    group:'punct', aliases:['asterisk','star','*'] },
+      { char:'.', unicode:46,  glyphName:'period',      group:'punct', aliases:['punktum','period','.'] },
+      { char:',', unicode:44,  glyphName:'comma',       group:'punct', aliases:['komma','comma',','] },
+      { char:'!', unicode:33,  glyphName:'exclam',      group:'punct', aliases:['utropstegn','excl','!'] },
+      { char:'?', unicode:63,  glyphName:'question',    group:'punct', aliases:['sporsmalstegn','question','?'] },
+      { char:':', unicode:58,  glyphName:'colon',       group:'punct', aliases:['kolon','colon',':'] },
+      { char:';', unicode:59,  glyphName:'semicolon',   group:'punct', aliases:['semikolon','semicolon',';'] },
+      { char:'-', unicode:45,  glyphName:'hyphen',      group:'punct', aliases:['bindestrek','hyphen','-'] },
+      { char:'(', unicode:40,  glyphName:'parenleft',   group:'punct', aliases:['venstreparentes','parenleft','('] },
+      { char:')', unicode:41,  glyphName:'parenright',  group:'punct', aliases:['hoyreparentes','parenright',')'] },
+      { char:'/', unicode:47,  glyphName:'slash',       group:'punct', aliases:['skrastrek','slash','/'] },
+      { char:'@', unicode:64,  glyphName:'at',          group:'punct', aliases:['krøllalfa','krollalfa','at','@'] },
+      { char:'&', unicode:38,  glyphName:'ampersand',   group:'punct', aliases:['ogtegn','ampersand','&'] },
+      { char:'"', unicode:34,  glyphName:'quotedbl',    group:'punct', aliases:['anforselstegn','quotedbl','"'] },
+      { char:"'", unicode:39,  glyphName:'quotesingle', group:'punct', aliases:['apostrof','quotesingle',"'"] },
+      { char:'#', unicode:35,  glyphName:'numbersign',  group:'punct', aliases:['emneknagg','hash','#'] },
+      { char:'%', unicode:37,  glyphName:'percent',     group:'punct', aliases:['prosent','percent','%'] },
+      { char:'+', unicode:43,  glyphName:'plus',        group:'punct', aliases:['pluss','plus','+'] },
+      { char:'=', unicode:61,  glyphName:'equal',       group:'punct', aliases:['likhetstegn','equal','='] },
+      { char:'_', unicode:95,  glyphName:'underscore',  group:'punct', aliases:['understrek','underscore','_'] },
+      { char:'*', unicode:42,  glyphName:'asterisk',    group:'punct', aliases:['stjerne','asterisk','*'] },
     ];
 
     const ALL_CHARS = [...LETTERS, ...NUMBERS, ...PUNCTUATION];
@@ -420,7 +420,7 @@
       }
       await Promise.all(loads);
       if (unmatched.length > 0) {
-        alert(`Ukjente filnavn:\n${unmatched.join('\n')}\n\nEksempler: A.png, ae.png, 0.png, period.png, excl.png`);
+        alert(`Ukjente filnavn:\n${unmatched.join('\n')}\n\nEksempler: A.png, ae.png, 0.png, punktum.png, utropstegn.png, krøllalfa.png`);
       }
     }
 
