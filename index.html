@@ -551,10 +551,13 @@
         }
       }
 
+      const psName = fontName.replace(/[æøåÆØÅ]/g, c => ({'æ':'ae','ø':'oe','å':'aa','Æ':'AE','Ø':'OE','Å':'AA'}[c]))
+                             .replace(/[^A-Za-z0-9_\-]/g, '_');
       const font = new opentype.Font({
         familyName: fontName, styleName: 'Regular',
         unitsPerEm: UPM, ascender: ASCENDER, descender: DESCENDER, glyphs,
       });
+      font.names.postScriptName = { en: psName + '-Regular' };
 
       font.download(`${fontName}.ttf`);
       msg.textContent = `Ferdig — ${processed} tegn eksportert som ${fontName}.ttf`;
