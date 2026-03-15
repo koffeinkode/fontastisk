@@ -141,14 +141,14 @@
     .glyph-grid {
       display: grid;
       gap: 8px;
-      grid-template-columns: repeat(auto-fill, minmax(72px, 80px));
+      grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
     }
 
     .slot-wrap {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 5px;
+      align-items: stretch;
+      gap: 4px;
     }
 
     .slot-filename {
@@ -158,7 +158,6 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 100%;
     }
 
     .glyph-slot {
