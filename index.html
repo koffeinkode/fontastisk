@@ -207,7 +207,7 @@
 
       const svgStr = ImageTracer.imagedataToSVG(imgData, {
         colorsampling: 0, numberofcolors: 2, mincolorratio: 0, colorquantcycles: 1,
-        ltres: 0.5, qtres: 0.5, pathomit: 4, rightangleenhance: true,
+        ltres: 0.5, qtres: 0.5, pathomit: 0, rightangleenhance: true,
         scale: 1, roundcoords: 1, viewbox: false, desc: false, lcpr: 0, qcpr: 0,
       });
 
@@ -225,19 +225,24 @@
       const svgDoc = parser.parseFromString(svgStr, 'image/svg+xml');
       const path = new opentype.Path();
 
-      let usedGroups = 0;
-      for (const g of svgDoc.querySelectorAll('g')) {
-        const fill = (g.getAttribute('fill') || '').toLowerCase().replace(/\s/g, '');
-        const isWhite = fill === '#ffffff' || fill === '#fff' || fill === 'white';
-        if (isWhite) continue;
-        for (const pathEl of g.querySelectorAll('path')) {
-          const d = pathEl.getAttribute('d');
-          if (d) { appendTransformedPath(path, d, tx, ty); usedGroups++; }
+      function fillBrightness(fillStr) {
+        const s = (fillStr || '').toLowerCase().replace(/\s/g, '');
+        if (s === 'white') return 255;
+        if (s === 'black') return 0;
+        const hex = s.match(/^#([0-9a-f]{3,6})$/);
+        if (hex) {
+          const h = hex[1].length === 3 ? hex[1].replace(/(.)/g, '$1$1') : hex[1];
+          return (parseInt(h.slice(0,2),16)*299 + parseInt(h.slice(2,4),16)*587 + parseInt(h.slice(4,6),16)*114) / 1000;
         }
+        const rgb = s.match(/^rgb\((\d+),(\d+),(\d+)\)$/);
+        if (rgb) return (parseInt(rgb[1])*299 + parseInt(rgb[2])*587 + parseInt(rgb[3])*114) / 1000;
+        return 128;
       }
 
-      if (usedGroups === 0) {
-        for (const pathEl of svgDoc.querySelectorAll('path')) {
+      for (const g of svgDoc.querySelectorAll('g')) {
+        const brightness = fillBrightness(g.getAttribute('fill'));
+        if (brightness > 128) continue; // skip light/white layers
+        for (const pathEl of g.querySelectorAll('path')) {
           const d = pathEl.getAttribute('d');
           if (d) appendTransformedPath(path, d, tx, ty);
         }
